@@ -1,0 +1,21 @@
+# Dependencies (none — no npm install needed)
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# Logs
+*.log
+
+# Temp / build artifacts
+*.zip
+*.crx
+*.pem
+dist/
+build/

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>XBridge</title>
+  <link rel="stylesheet" href="popup.css" />
+  <style>
+    /* Shown by default until JS takes over */
+    #boot-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 40px 24px;
+      min-height: 180px;
+    }
+    .boot-icon {
+      width: 56px; height: 56px;
+      background: #000000;
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    }
+    .boot-icon img { width: 36px; height: 36px; object-fit: contain; filter: brightness(10); }
+    .boot-name {
+      font-size: 20px; font-weight: 800;
+      color: #000000;
+      letter-spacing: 1px;
+    }
+    .boot-spinner {
+      width: 20px; height: 20px;
+      border: 2.5px solid rgba(0,0,0,0.15);
+      border-top-color: #000000;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    /* Error fallback */
+    #error-screen {
+      display: none;
+      padding: 24px;
+      text-align: center;
+      color: #ef4444;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Boot screen shown immediately while JS loads -->
+  <div id="boot-screen">
+    <div class="boot-icon"><img src="../icons/icon48.png" alt="XBridge"></div>
+    <div class="boot-name">XBRIDGE</div>
+    <div class="boot-spinner"></div>
+  </div>
+
+  <!-- Error fallback if module loading fails -->
+  <div id="error-screen">
+    <div style="font-size:28px;margin-bottom:8px">⚠</div>
+    <strong>XBridge failed to load</strong><br>
+    <span id="error-detail"></span><br><br>
+    <a href="javascript:window.location.reload()" style="color:#000000;font-weight:600">Reload popup →</a>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       STATE A: ONBOARDING (no API key saved)
+  ═══════════════════════════════════════════════════════ -->
+  <div id="onboarding" class="hidden">
+    <div style="padding:28px 24px 24px;display:flex;flex-direction:column;align-items:center;gap:20px">
+
+      <div class="onboarding-logo">
+        <div class="logo-icon"><img src="../icons/icon48.png" alt="XBridge"></div>
+        <div class="logo-name">XBRIDGE</div>
+        <div class="logo-tagline">Continue any AI conversation anywhere,<br>without losing context.</div>
+      </div>
+
+      <div class="setup-card">
+        <h3>⚡ Quick Setup (1 minute)</h3>
+        <div class="setup-steps">
+          <div class="setup-step">
+            <div class="step-num">1</div>
+            <div>Go to <a href="#" id="aistudio-link">aistudio.google.com</a></div>
+          </div>
+          <div class="setup-step">
+            <div class="step-num">2</div>
+            <div>Click <strong>"Get API key"</strong> → Create API key</div>
+          </div>
+          <div class="setup-step">
+            <div class="step-num">3</div>
+            <div>Paste your key below:</div>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <input
+            type="password"
+            id="api-key-input"
+            class="input-field"
+            placeholder="Paste your AIza... key here"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+
+        <button id="save-key-btn" class="btn btn-primary">
+          <span id="save-key-label">Save &amp; Start Using XBridge</span>
+          <span id="save-key-spinner" class="spinner hidden"></span>
+        </button>
+
+        <div id="key-validation-msg" class="hidden" style="font-size:12px;text-align:center;padding:4px 0;"></div>
+      </div>
+
+      <div class="api-note">
+        🔒 Your key is stored only on your device.<br>
+        Never sent anywhere except Google's API.
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       MAIN POPUP (shown when API key exists)
+  ═══════════════════════════════════════════════════════ -->
+  <div id="main-popup" class="hidden">
+
+    <!-- Header -->
+    <div class="popup-header">
+      <div class="header-logo">
+        <div class="header-logo-icon"><img src="../icons/icon16.png" alt="XBridge"></div>
+        <div>
+          <div class="header-logo-text">XBRIDGE</div>
+          <div id="current-platform-badge" class="header-platform-badge hidden"></div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="settings-toggle-btn" class="icon-btn" title="Settings">⚙</button>
+      </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div id="settings-panel" class="hidden">
+      <div class="settings-title">⚙ Settings</div>
+      <div class="key-display">
+        <span class="key-masked" id="key-masked-display">AIza••••••••••••</span>
+        <div class="key-actions">
+          <button id="change-key-btn" class="btn btn-secondary btn-xs">Change</button>
+          <button id="clear-key-btn" class="btn btn-danger btn-xs">Clear</button>
+        </div>
+      </div>
+      <div id="change-key-form" class="hidden">
+        <div class="input-group" style="margin-bottom:8px">
+          <input type="password" id="new-key-input" class="input-field" placeholder="Paste new API key..." />
+        </div>
+        <div style="display:flex;gap:6px">
+          <button id="save-new-key-btn" class="btn btn-primary btn-sm" style="flex:1">
+            <span id="save-new-key-label">Verify &amp; Save</span>
+            <span id="save-new-key-spinner" class="spinner hidden"></span>
+          </button>
+          <button id="cancel-change-key-btn" class="btn btn-secondary btn-sm" style="flex:0;padding:6px 10px">✕</button>
+        </div>
+        <div id="new-key-msg" class="hidden" style="font-size:12px;margin-top:6px;text-align:center;"></div>
+      </div>
+    </div>
+
+    <!-- Popup Body -->
+    <div id="popup-body" class="popup-body">
+
+      <!-- STATE B: On a supported AI platform -->
+      <div id="state-b" class="hidden">
+        <div class="platform-context">
+          <div class="platform-info">
+            <div class="platform-dot"></div>
+            <span id="state-b-platform" class="platform-label">AI Platform detected</span>
+          </div>
+        </div>
+        <button id="capture-btn" class="btn btn-primary">
+          <span>📸</span>
+          <span id="capture-label">Capture This Conversation</span>
+          <span id="capture-spinner" class="spinner hidden"></span>
+        </button>
+      </div>
+
+      <!-- STATE C: Conversation selected -->
+      <div id="state-c" class="hidden">
+        <div class="selected-conv-header">
+          <div class="selected-conv-info">
+            <div class="selected-conv-title" id="sc-title">Conversation Title</div>
+            <div class="selected-conv-meta">
+              <span class="platform-badge" id="sc-badge">Platform</span>
+              <span class="conv-msg-count" id="sc-msg-count">0 messages</span>
+            </div>
+          </div>
+          <button class="back-btn" id="back-to-list-btn" title="Back">←</button>
+        </div>
+
+        <button id="compress-btn" class="btn btn-accent">
+          <span>✨</span>
+          <span id="compress-label">Compress &amp; Summarize</span>
+          <span id="compress-spinner" class="spinner hidden"></span>
+        </button>
+
+        <div id="token-savings" class="token-savings hidden">
+          <span>💾</span>
+          <span id="token-savings-text"></span>
+        </div>
+
+        <div id="summary-card" class="hidden">
+          <div class="section-header"><span class="section-title">Summary</span></div>
+          <div class="summary-card">
+            <strong>Overview</strong>
+            <span id="summary-text"></span>
+            <div id="tech-stack-row" class="hidden" style="margin-top:8px">
+              <strong>Tech Stack</strong>
+              <div class="tag-list" id="tech-tags"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="task-section">
+          <div class="section-header">
+            <span class="section-title">Tasks</span>
+            <button id="extract-tasks-btn" class="btn btn-secondary btn-xs">
+              <span id="extract-label">Extract Tasks</span>
+              <span id="extract-spinner" class="spinner spinner-dark hidden"></span>
+            </button>
+          </div>
+          <div class="task-list" id="task-list"></div>
+        </div>
+
+        <div>
+          <div class="section-header"><span class="section-title">Continue In</span></div>
+          <div class="continue-grid">
+            <button class="continue-btn" data-platform="claude" data-url="https://claude.ai/new">
+              <span class="platform-emoji">🟠</span> Claude
+            </button>
+            <button class="continue-btn" data-platform="gemini" data-url="https://gemini.google.com">
+              <span class="platform-emoji">🔵</span> Gemini
+            </button>
+            <button class="continue-btn" data-platform="chatgpt" data-url="https://chatgpt.com">
+              <span class="platform-emoji">🟢</span> ChatGPT
+            </button>
+            <button class="continue-btn" data-platform="perplexity" data-url="https://www.perplexity.ai">
+              <span class="platform-emoji">🔷</span> Perplexity
+            </button>
+          </div>
+        </div>
+
+        <div class="export-dropdown">
+          <button class="btn btn-secondary" id="export-toggle-btn" style="width:100%">
+            <span>⬇</span> Export Conversation
+          </button>
+          <div class="export-menu hidden" id="export-menu">
+            <button class="export-menu-item" id="export-md">📝 Markdown (.md)</button>
+            <button class="export-menu-item" id="export-txt">📄 Plain Text (.txt)</button>
+            <button class="export-menu-item" id="export-pdf">🖨 Print / PDF</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATE D: Non-AI page -->
+      <div id="state-d" class="hidden">
+        <div class="ready-banner">
+          <div class="ready-banner-icon">🔗</div>
+          <div class="ready-banner-title">XBridge is ready</div>
+          <div class="ready-banner-sub">Navigate to ChatGPT, Claude, Gemini, or Perplexity<br>to capture or continue a conversation.</div>
+        </div>
+      </div>
+
+      <!-- Recent Conversations (shared across B and D states) -->
+      <div id="recent-conversations-section">
+        <div class="section-header">
+          <span class="section-title">Recent Conversations</span>
+        </div>
+        <div id="recent-conversations-list" class="conversation-list">
+          <div class="empty-state">
+            <span class="empty-state-icon">💬</span>
+            <div class="empty-state-text">No conversations yet.<br>Capture your first one!</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /.popup-body -->
+
+    <!-- Footer -->
+    <div class="footer">
+      <a href="#" id="open-dashboard-link" class="dashboard-link">📋 Open Dashboard →</a>
+      <span style="font-size:10px;color:var(--text-muted)">v1.0.0</span>
+    </div>
+
+  </div><!-- /#main-popup -->
+
+</div><!-- /#app -->
+
+<script type="module" src="popup.js"></script>
+</body>
+</html>
+
+

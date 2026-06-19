@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bridge — Conversation Viewer</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #000000;
+      --primary-light: #222222;
+      --primary-bg: rgba(0,0,0,0.05);
+      --accent: #333333;
+      --accent-bg: rgba(0,0,0,0.04);
+      --danger: #cc0000;
+      --bg: #f4f4f4;
+      --surface: #ffffff;
+      --surface-2: #eeeeee;
+      --border: #dddddd;
+      --border-soft: rgba(0,0,0,0.1);
+      --text: #111111;
+      --text-secondary: #555555;
+      --text-muted: #888888;
+      --code-bg: #1e1b2e;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111111;
+        --surface: #1e1e1e;
+        --surface-2: #2a2a2a;
+        --border: #333333;
+        --border-soft: rgba(0,0,0,0.1);
+        --text: #f0f0f0;
+        --text-secondary: #aaaaaa;
+        --text-muted: #666666;
+        --primary-bg: rgba(0,0,0,0.05);
+        --accent-bg: rgba(29,158,117,0.1);
+      }
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Print Styles ─── */
+    @media print {
+      .no-print { display: none !important; }
+      .header { background: #000000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      body { background: #fff !important; }
+      .message-bubble { break-inside: avoid; }
+      .container { max-width: 100%; padding: 0 20px; }
+    }
+
+    /* ─── Header ─── */
+    .header {
+      background: #000000;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .back-link {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      transition: var(--transition);
+    }
+    .back-link:hover { background: rgba(255,255,255,0.15); color: #fff; }
+    .header-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      max-width: 400px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+      border: 1.5px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      position: relative;
+    }
+    .header-btn:hover { background: rgba(255,255,255,0.22); }
+
+    /* Export dropdown */
+    .export-dropdown { position: relative; }
+    .export-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-md);
+      min-width: 180px;
+      z-index: 200;
+      overflow: hidden;
+      animation: fade-in 0.15s ease;
+    }
+    .export-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 16px;
+      font-size: 13px;
+      color: var(--text);
+      cursor: pointer;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      font-family: inherit;
+      transition: var(--transition);
+    }
+    .export-menu-item:hover { background: var(--primary-bg); color: var(--primary); }
+
+    /* ─── Container ─── */
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 28px 24px;
+    }
+
+    /* ─── Conv Info Card ─── */
+    .conv-info-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: var(--shadow-sm);
+    }
+    .conv-info-main { flex: 1; }
+    .conv-info-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 10px;
+      line-height: 1.3;
+    }
+    .conv-info-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .meta-chip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+    .platform-badge {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+    .platform-badge.chatgpt { background: rgba(16,163,127,0.1); color: #10a37f; }
+    .platform-badge.claude { background: rgba(210,133,82,0.1); color: #d28552; }
+    .platform-badge.gemini { background: rgba(66,133,244,0.1); color: #4285f4; }
+    .platform-badge.perplexity { background: rgba(32,178,170,0.1); color: #20b2aa; }
+    .platform-badge.unknown { background: var(--primary-bg); color: var(--primary); }
+
+    /* ─── Summary Block ─── */
+    .summary-block {
+      background: var(--surface-2);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+    .summary-block h3 {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--primary);
+      margin-bottom: 10px;
+    }
+    .summary-text { font-size: 14px; color: var(--text-secondary); line-height: 1.7; }
+    .summary-meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .summary-meta-item h4 {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .tag {
+      background: var(--primary-bg);
+      color: var(--primary);
+      border: 1px solid var(--border-soft);
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .task-list-inline {
+      list-style: none;
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+    .task-list-inline li::before { content: "• "; color: var(--primary); font-weight: bold; }
+
+    /* ─── Messages ─── */
+    .messages-header {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .msg-count-badge {
+      background: var(--primary-bg);
+      color: var(--primary);
+      border: 1px solid var(--border-soft);
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+    }
+
+    .messages-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .message-bubble {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .message-bubble.assistant { flex-direction: row-reverse; }
+
+    .bubble-avatar {
+      width: 32px;
+      height: 32px;
+      min-width: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .bubble-avatar.user {
+      background: var(--primary-bg);
+      color: var(--primary);
+      border: 2px solid var(--border-soft);
+    }
+    .bubble-avatar.assistant {
+      background: var(--accent-bg);
+      color: var(--accent);
+      border: 2px solid rgba(29,158,117,0.2);
+    }
+
+    .bubble-body { flex: 1; max-width: calc(100% - 44px); }
+    .bubble-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .message-bubble.assistant .bubble-label { text-align: right; }
+
+    .bubble-content {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+      box-shadow: var(--shadow-sm);
+    }
+    .message-bubble.user .bubble-content {
+      border-color: var(--border-soft);
+      background: var(--primary-bg);
+    }
+    .message-bubble.assistant .bubble-content {
+      border-color: rgba(29,158,117,0.15);
+    }
+
+    /* Code blocks within messages */
+    .bubble-content code {
+      font-family: 'Courier New', Courier, monospace;
+      background: var(--code-bg);
+      color: #a8f0c6;
+      padding: 0 4px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .bubble-timestamp {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .message-bubble.assistant .bubble-timestamp { text-align: right; }
+
+    /* ─── Empty / Loading ─── */
+    .loading-block {
+      text-align: center;
+      padding: 60px;
+      color: var(--text-muted);
+    }
+    .spinner {
+      width: 24px; height: 24px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+      margin-bottom: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-block {
+      text-align: center;
+      padding: 60px;
+      color: var(--danger);
+    }
+
+    /* ─── Toast ─── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      z-index: 999;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.success { background: #000000; }
+    #toast.error { background: #cc0000; }
+    #toast.info { background: #333333; }
+
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<header class="header no-print">
+  <div class="header-left">
+    <a href="dashboard.html" class="back-link">← Dashboard</a>
+    <div class="header-title" id="header-title">Loading...</div>
+  </div>
+  <div class="header-actions">
+    <div class="export-dropdown">
+      <button class="header-btn" id="export-toggle">⬇ Export</button>
+      <div class="export-menu hidden" id="export-menu">
+        <button class="export-menu-item" id="export-md">📝 Markdown (.md)</button>
+        <button class="export-menu-item" id="export-txt">📄 Plain Text (.txt)</button>
+        <button class="export-menu-item" id="export-pdf">🖨 Print / PDF</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="container" id="main-container">
+  <div class="loading-block">
+    <div class="spinner"></div>
+    <div>Loading conversation...</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module" src="viewer.js"></script>
+
+</body>
+</html>
+
+
+
+
