@@ -271,7 +271,7 @@
     if (!inputEl) {
       // Timeout — show manual fallback with copy button
       showToast(
-        "⚠ Bridge couldn't find the chat input automatically.<br>Use the button below to copy your context.",
+        "⚠ XBridge couldn't find the chat input automatically.<br>Use the button below to copy your context.",
         "error",
         pendingText
       );
@@ -281,11 +281,11 @@
     // Paste the context
     try {
       setInputValue(inputEl, pendingText);
-      showToast("Bridge context loaded. Review and send ↑", "success");
+      showToast("XBridge context loaded. Review and send ↑", "success");
     } catch (err) {
-      console.error("[Bridge] Autopaste failed:", err);
+      console.error("[XBridge] Autopaste failed:", err);
       showToast(
-        "⚠ Bridge context ready — couldn't auto-paste.<br>Copy it manually:",
+        "⚠ XBridge context ready — couldn't auto-paste.<br>Copy it manually:",
         "error",
         pendingText
       );
@@ -299,5 +299,5 @@
     runAutoPaste();
   }
 
-  console.log("[Bridge] Autopaste script loaded.");
+  console.log("[XBridge] Autopaste script loaded.");
 })();

@@ -41,8 +41,8 @@
 
   const fabBtn = document.createElement("button");
   fabBtn.id = "bridge-fab-btn";
-  fabBtn.title = "Bridge — Capture or continue conversation";
-  
+  fabBtn.title = "XBridge — Capture or continue conversation";
+
   const bridgeLogo = document.createElement("img");
   bridgeLogo.className = "bridge-emoji";
   bridgeLogo.src = chrome.runtime.getURL("icons/icon48.png");
@@ -53,7 +53,7 @@
 
   const fabLabel = document.createElement("span");
   fabLabel.id = "bridge-fab-label";
-  fabLabel.textContent = "Bridge";
+  fabLabel.textContent = "XBridge";
   fabBtn.appendChild(fabLabel);
 
   fab.appendChild(fabBtn);
@@ -72,7 +72,7 @@
         panel.style.display = "none";
       }
     } catch (err) {
-      console.error("[Bridge] Panel render error:", err);
+      console.error("[XBridge] Panel render error:", err);
       showInlineToast("Error opening panel: " + err.message, "#ef4444");
       panelOpen = false;
     }
@@ -106,7 +106,7 @@
     // Header
     const header = el("div", "bp-header");
     const headerLeft = el("div", "bp-header-left");
-    
+
     const logoContainer = el("div", "bp-logo-icon");
     const logoImg = document.createElement("img");
     logoImg.src = chrome.runtime.getURL("icons/icon16.png");
@@ -116,7 +116,7 @@
     const headerText = el("div", "bp-header-text");
     const title = el("div", "bp-title", "XBRIDGE");
     const subtitle = el("div", "bp-subtitle", "on " + PLATFORM);
-    
+
     headerText.appendChild(title);
     headerText.appendChild(subtitle);
     headerLeft.appendChild(logoContainer);
@@ -134,7 +134,7 @@
     if (!apiKey) {
       const note = el("div");
       note.style.cssText = "font-size:11px;color:#f59e0b;padding:6px 10px;background:rgba(245,158,11,0.08);border-radius:8px;border:1px solid rgba(245,158,11,0.2)";
-      note.textContent = "⚠ No API key set. Open the Bridge popup to add your Gemini key.";
+      note.textContent = "⚠ No API key set. Open the XBridge popup to add your Gemini key.";
       body.appendChild(note);
     }
 
@@ -159,24 +159,24 @@
       recent.forEach(c => {
         const platClass = (c.platform || "unknown").toLowerCase();
         const item = el("div", "bp-conv-item");
-        
+
         const info = el("div", "bp-conv-info");
         const ctitle = el("div", "bp-conv-title", c.title);
         ctitle.title = c.title;
         const meta = el("div", "bp-conv-meta");
         const badge = el("span", "bp-badge " + platClass, c.platform || "Unknown");
         const date = el("span", "bp-conv-date", relativeDate(c.capturedAt));
-        
+
         meta.appendChild(badge);
         meta.appendChild(date);
         info.appendChild(ctitle);
         info.appendChild(meta);
-        
+
         const cBtn = el("button", "bp-continue-here-btn", "Continue →");
         cBtn.dataset.id = c.id;
         cBtn.dataset.title = c.title;
         cBtn.dataset.platform = c.platform;
-        
+
         item.appendChild(info);
         item.appendChild(cBtn);
         convList.appendChild(item);
@@ -230,7 +230,7 @@
       const response = await chrome.runtime.sendMessage({ type: "CAPTURE_CONVERSATION_SELF" });
 
       if (response?.ok) {
-        showInlineToast("Captured by Bridge ✓");
+        showInlineToast("Captured by XBridge ✓");
         panel.style.display = "none";
         panelOpen = false;
       } else {
@@ -266,7 +266,7 @@
     let contextText = buildContext(conv);
     await setStorageItem("pending_paste", contextText);
 
-    showInlineToast("Bridge context loading into this chat... ↑");
+    showInlineToast("XBridge context loading into this chat... ↑");
     panel.style.display = "none";
     panelOpen = false;
 
@@ -319,7 +319,7 @@
       const completed = (c.completed_tasks || []).map((t) => `✓ ${t}`).join("\n") || "  (none)";
       const pending = (c.pending_tasks || []).map((t) => `◻ ${t}`).join("\n") || "  (none)";
       const recent = (c.recent_messages || []).join("\n") || "(none)";
-      return `[BRIDGE CONTEXT — Continuing from ${conv.platform}]
+      return `[XBRIDGE CONTEXT — Continuing from ${conv.platform}]
 
 Project: ${c.project_title || conv.title}
 Summary: ${c.summary || ""}
@@ -401,5 +401,5 @@ Please continue helping with this project.`;
   }
 
   // End of bridge-ui.js
-  console.log(`[Bridge UI] Floating button injected on ${PLATFORM}`);
+  console.log(`[XBridge UI] Floating button injected on ${PLATFORM}`);
 })();

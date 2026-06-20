@@ -103,7 +103,7 @@
       ...Array.from(userNodes).map((el) => ({ el, role: "user" })),
       ...Array.from(aiNodes).map((el) => ({ el, role: "assistant" }))
     ];
-    
+
     // Elegant deduplication: KEEP the innermost elements
     all = all.filter(item => {
       return !all.some(other => other.el !== item.el && item.el.contains(other.el));
@@ -355,11 +355,11 @@
           };
 
           await saveConversationDirect(conv);
-          showToast("Captured by Bridge ✓");
+          showToast("Captured by XBridge ✓");
 
           sendResponse({ ok: true, conv });
         } catch (err) {
-          console.error("[Bridge] Capture error:", err);
+          console.error("[XBridge] Capture error:", err);
           showToast(err.message || "Capture failed.", "error");
           sendResponse({ ok: false, error: err.message });
         }
@@ -374,5 +374,5 @@
     }
   });
 
-  console.log(`[Bridge] Capture script loaded on ${CURRENT_PLATFORM}`);
+  console.log(`[XBridge] Capture script loaded on ${CURRENT_PLATFORM}`);
 })();
